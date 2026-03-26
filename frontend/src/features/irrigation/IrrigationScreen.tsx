@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Routes } from "../../core/navigation/routes";
 import { useDrawerStore } from "../../core/drawer/drawerStore";
 import { useTheme } from "../../core/theme/useTheme";
+import { irrigationApi } from "./services/irrigationApi";
 
 const OFFSET_WHITE = "#FAFAF8";
 const GREEN = "#4CAF50";
@@ -27,7 +28,7 @@ const FORECAST = [
   { day: "Fri", icon: "💨", temp: "23°C", rain: "20%" },
 ];
 
-const ACTIVITY_LOG = [
+const INITIAL_ACTIVITY_LOG = [
   { id: "1", color: GREEN, msg: "Irrigation activated", field: "Field A1", vol: "450L", time: "06:00 AM" },
   { id: "2", color: "#FF9800", msg: "Skipped due to rain forecast", field: "Field B2", vol: "0L", time: "02:30 PM" },
   { id: "3", color: GREEN, msg: "Irrigation activated", field: "Field B1", vol: "380L", time: "05:45 PM" },
@@ -69,6 +70,33 @@ export function IrrigationScreen() {
   const { width } = useWindowDimensions();
   const { colors } = useTheme();
   const [autonomousOn, setAutonomousOn] = useState(false);
+  const [activityLog, setActivityLog] = useState(INITIAL_ACTIVITY_LOG);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleCheckIrrigation = async () => {
+    setIsLoading(true);
+    try {
+      // Defaulting to Apple/Wheat and some coordinates as required by the backend
+      const data = await irrigationApi.checkIrrigation("Wheat", 36.8, 10.18);
+      const decisionStr = data.decision || "";
+      const isIrrigate = decisionStr.includes("Irrigate");
+
+      const newLog = {
+        id: Date.now().toString(),
+        color: isIrrigate ? GREEN : "#FF9800",
+        msg: decisionStr || "Agent Decision received",
+        field: "Field A1",
+        vol: isIrrigate ? "Auto" : "0L",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setActivityLog(prev => [newLog, ...prev]);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to reach backend API. If you're on a physical device, you need to use your computer's local IP instead of 127.0.0.1 in irrigationApi.ts.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const graphWidth = width - 24 * 2 - 32;
   const graphHeight = 120;
@@ -187,7 +215,7 @@ export function IrrigationScreen() {
 
         {/* Today's Activity Log */}
         <Text style={styles.sectionTitle}>Today's Activity Log</Text>
-        {ACTIVITY_LOG.map((entry) => (
+        {activityLog.map((entry) => (
           <View key={entry.id} style={styles.logCard}>
             <View style={[styles.logDot, { backgroundColor: entry.color }]} />
             <View style={styles.logBody}>
@@ -206,9 +234,13 @@ export function IrrigationScreen() {
           </View>
           <Text style={styles.overrideDesc}>Take control when needed. System will return to auto mode after 24 hours.</Text>
           <View style={styles.overrideButtons}>
-            <Pressable style={({ pressed }) => [styles.overrideBtn, styles.overrideBtnPrimary, pressed && styles.pressed]}>
-              <Text style={styles.overrideBtnIcon}>💧</Text>
-              <Text style={styles.overrideBtnText}>Start Now</Text>
+            <Pressable 
+              onPress={handleCheckIrrigation}
+              disabled={isLoading}
+              style={({ pressed }) => [styles.overrideBtn, styles.overrideBtnPrimary, (pressed || isLoading) && styles.pressed]}
+            >
+              <Text style={styles.overrideBtnIcon}>{isLoading ? "⏳" : "💧"}</Text>
+              <Text style={styles.overrideBtnText}>{isLoading ? "Checking..." : "Check Backend"}</Text>
             </Pressable>
             <Pressable style={({ pressed }) => [styles.overrideBtn, pressed && styles.pressed]}>
               <Text style={styles.overrideBtnText}>Schedule</Text>
@@ -234,6 +266,9 @@ export function IrrigationScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: OFFSET_WHITE },
+  calendarIcon: { 
+    fontSize: 20 
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
