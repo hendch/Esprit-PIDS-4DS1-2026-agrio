@@ -109,18 +109,7 @@ class IrrigationAgent:
                     "weather": str(weather),
                 }
             )
-            return (
-                f"{decision['decision'].capitalize()} - ET0 {weather['et0']:.2f}, "
-                f"Kc {water_need['kc']:.2f}, ETc {water_need['etc_mm_per_day']:.2f}, "
-                f"rain {weather['precipitation']:.2f} mm, moisture {moisture['moisture_percent']:.1f}%. "
-                f"Apply {recommended_mm:.2f} mm (pump {duration}s). "
-                f"Reason: {decision['reason']}. "
-                f"Confidence: {explanation['confidence']:.2f}."
-            )
+            action_text = "Irrigate" if decision["decision"] == "irrigate" else "Reduce water used in irrigation"
+            return f"{action_text}. Moisture: {moisture['moisture_percent']:.1f}%. Reason: {decision['reason']}"
 
-        return (
-            f"Skip - ET0 {weather['et0']:.2f}, Kc {water_need['kc']:.2f}, "
-            f"ETc {water_need['etc_mm_per_day']:.2f}, rain {weather['precipitation']:.2f} mm, "
-            f"moisture {moisture['moisture_percent']:.1f}%. "
-            f"Reason: {decision['reason']}. Confidence: {explanation['confidence']:.2f}."
-        )
+        return f"Don't irrigate. Moisture: {moisture['moisture_percent']:.1f}%. Reason: {decision['reason']}"

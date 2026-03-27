@@ -2,18 +2,49 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+import asyncio
+import logging
 
 from fastapi import FastAPI
 
 from app.settings import settings
 
+async def autonomous_worker():
+    from app.modules.irrigation.repository import IrrigationRepository
+    from app.api.v1.irrigation.routes import _get_agent
+    
+    repo = IrrigationRepository()
+    
+    # Run loop every 6 hours (simulate for now as needed)
+    SLEEP_SECONDS = 60 * 60 * 6 
+    
+    while True:
+        try:
+            if repo.get_autonomous_state():
+                logging.info("[Autonomous Worker] Mode ON. Evaluating field...")
+                agent = _get_agent()
+                agent.run(
+                    query="System Background Tick: Should I irrigate the field A1?",
+                    crop="wheat",
+                    growth_stage="mid",
+                    lat=36.8,
+                    lon=10.18,
+                )
+            else:
+                pass # logging.info("[Autonomous Worker] Mode OFF. Skipping.")
+        except Exception as e:
+            logging.error(f"[Autonomous Worker] Failed execution: {e}")
+            
+        await asyncio.sleep(SLEEP_SECONDS)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from app.modules.irrigation.repository import IrrigationRepository
 
     IrrigationRepository().init_db()
+    task = asyncio.create_task(autonomous_worker())
     yield
+    task.cancel()
 
 
 def create_app() -> FastAPI:
