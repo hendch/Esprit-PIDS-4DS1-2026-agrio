@@ -1,3 +1,5 @@
 .env
+agrio.db
+irrigation.db
 agrio_backend.egg-info
 __pycache__

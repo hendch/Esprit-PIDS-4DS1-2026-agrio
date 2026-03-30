@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime
 
 import paho.mqtt.client as mqtt
 
@@ -24,10 +25,16 @@ class MqttSensorProvider:
         self._topic = topic
         self._client: mqtt.Client | None = None
         self._latest_moisture: float = 45.0
+        self._moisture_history: list[dict] = []
 
     def _on_message(self, client: mqtt.Client, userdata: object, msg: mqtt.MQTTMessage) -> None:
         try:
             self._latest_moisture = float(msg.payload.decode())
+            current_time = datetime.now().strftime("%H:%M:%S")
+            self._moisture_history.append({"time": current_time, "value": self._latest_moisture})
+            if len(self._moisture_history) > 15:
+                self._moisture_history.pop(0)
+
             logger.info("MQTT moisture reading: %.1f%%", self._latest_moisture)
         except (ValueError, UnicodeDecodeError):
             logger.warning("Could not parse MQTT payload: %s", msg.payload)
@@ -48,10 +55,22 @@ class MqttSensorProvider:
 
     def get_latest_reading_sync(self, device_id: str | None = None) -> dict:
         self.connect()
-        time.sleep(0.5)
+        for _ in range(35):
+            if self._latest_moisture != 45.0:
+                break
+            time.sleep(0.1)
         return {
             "moisture_percent": self._latest_moisture,
             "status": "low" if self._latest_moisture < 60 else "adequate",
+            "history": self._moisture_history,
+        }
+
+    def get_cached_reading(self) -> dict:
+        self.connect()
+        return {
+            "moisture_percent": self._latest_moisture,
+            "status": "low" if self._latest_moisture < 60 else "adequate",
+            "history": self._moisture_history,
         }
 
     async def get_latest_reading(self, device_id: str) -> dict:

@@ -10,12 +10,20 @@ from starlette.responses import Response
 
 from app.settings import settings
 
-_SKIP_PREFIXES = ("/health", "/auth/")
+_SKIP_PREFIXES = ("/health", "/auth/", "/docs", "/openapi", "/redoc")
+
+# TODO(REMOVE): Dev-only bypass — irrigation must require JWT like other APIs once the app
+# reliably attaches Bearer tokens (persist refresh, /auth/refresh on 401). Search: TEMPORARY_SKIP_JWT.
+_TEMPORARY_SKIP_JWT_PREFIXES = ("/api/v1/irrigation",)
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Any) -> Response:
         path = request.url.path
+
+        if any(path.startswith(p) for p in _TEMPORARY_SKIP_JWT_PREFIXES):
+            return await call_next(request)
+
         if any(seg in path for seg in _SKIP_PREFIXES):
             return await call_next(request)
 
