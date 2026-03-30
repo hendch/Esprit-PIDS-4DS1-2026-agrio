@@ -12,15 +12,18 @@ from app.settings import settings
 async def autonomous_worker():
     from app.modules.irrigation.repository import IrrigationRepository
     from app.api.v1.irrigation.routes import _get_agent
-    
-    repo = IrrigationRepository()
+    from app.persistence.db import AsyncSessionLocal
     
     # Run loop every 6 hours (simulate for now as needed)
     SLEEP_SECONDS = 60 * 60 * 6 
     
     while True:
         try:
-            if repo.get_autonomous_state():
+            async with AsyncSessionLocal() as session:
+                repo = IrrigationRepository(session)
+                is_on = await repo.get_autonomous_state()
+
+            if is_on:
                 logging.info("[Autonomous Worker] Mode ON. Evaluating field...")
                 agent = _get_agent()
                 # Run blocking agent call off the event loop so API stays responsive.
@@ -41,11 +44,9 @@ async def autonomous_worker():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    from app.modules.irrigation.repository import IrrigationRepository
     from app.persistence.db import init_models
 
     await init_models()
-    IrrigationRepository().init_db()
     task = asyncio.create_task(autonomous_worker())
     yield
     task.cancel()

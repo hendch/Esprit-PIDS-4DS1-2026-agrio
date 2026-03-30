@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.irrigation.repository import IrrigationRepository
 from app.modules.weather.open_meteo_client import OpenMeteoWeatherProvider
 from app.modules.iot_gateway.mqtt_client import MqttSensorProvider
+from app.persistence.db import get_async_session
 
 router = APIRouter()
 
-_repo = IrrigationRepository()
 _weather = OpenMeteoWeatherProvider()
 _sensor = MqttSensorProvider()
 _agent = None
@@ -34,6 +35,10 @@ def _get_agent():
     return _agent
 
 
+def _get_repo(session: AsyncSession) -> IrrigationRepository:
+    return IrrigationRepository(session)
+
+
 @router.post("/check")
 async def check_irrigation(data: dict):
     """Ask the irrigation agent whether to irrigate."""
@@ -53,9 +58,9 @@ async def check_irrigation(data: dict):
 
 
 @router.get("/history")
-async def get_history():
+async def get_history(session: AsyncSession = Depends(get_async_session)):
     """Return recent irrigation events."""
-    rows = _repo.get_history()
+    rows = await _get_repo(session).get_history()
     return {"history": rows}
 
 
@@ -74,7 +79,7 @@ async def get_recommendation(field_id: str):
 
 
 @router.get("/dashboard")
-async def get_dashboard_data():
+async def get_dashboard_data(session: AsyncSession = Depends(get_async_session)):
     """Unified endpoint to grab remote data without crashing if one fails."""
     # 1. Fetch Weather
     weather_data = None
@@ -95,7 +100,7 @@ async def get_dashboard_data():
     # 3. Fetch Today's Water Usage
     usage_today = 0.0
     try:
-        usage_today = _repo.get_today_water_usage()
+        usage_today = await _get_repo(session).get_today_water_usage()
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning("DB usage fetch failed: %s", e)
@@ -103,7 +108,7 @@ async def get_dashboard_data():
     # 4. Fetch History and Savings
     usage_history = None
     try:
-        usage_history = _repo.get_water_usage_history(limit=7)
+        usage_history = await _get_repo(session).get_water_usage_history(limit=7)
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning("DB history fetch failed: %s", e)
@@ -117,10 +122,12 @@ async def get_dashboard_data():
 
 
 @router.post("/schedule")
-async def create_schedule(data: ScheduleRequest):
+async def create_schedule(
+    data: ScheduleRequest, session: AsyncSession = Depends(get_async_session)
+):
     """Save an irrigation schedule."""
     try:
-        schedule_id = _repo.add_schedule(
+        schedule_id = await _get_repo(session).add_schedule(
             field_id=data.field_id,
             target_date=data.target_date,
             start_time=data.start_time,
@@ -132,17 +139,19 @@ async def create_schedule(data: ScheduleRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/autonomous")
-async def get_autonomous():
+async def get_autonomous(session: AsyncSession = Depends(get_async_session)):
     """Get the current autonomous background job status."""
-    return {"autonomous": _repo.get_autonomous_state()}
+    return {"autonomous": await _get_repo(session).get_autonomous_state()}
 
 @router.post("/autonomous")
-async def set_autonomous(data: AutonomousStateRequest):
+async def set_autonomous(
+    data: AutonomousStateRequest, session: AsyncSession = Depends(get_async_session)
+):
     """Enable or disable the autonomous background job."""
-    _repo.set_autonomous_state(data.autonomous)
+    await _get_repo(session).set_autonomous_state(data.autonomous)
     return {"status": "success", "autonomous": data.autonomous}
 
 @router.get("/schedules")
-async def get_schedules():
+async def get_schedules(session: AsyncSession = Depends(get_async_session)):
     """Get the recent irrigation schedules."""
-    return {"schedules": _repo.get_schedules()}
+    return {"schedules": await _get_repo(session).get_schedules()}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta
 
 from langchain.tools import tool
@@ -7,13 +8,13 @@ from langchain.tools import tool
 from app.modules.irrigation.engine.kc_tables import KC_TABLE
 from app.modules.irrigation.repository import IrrigationRepository
 from app.modules.iot_gateway.mqtt_client import MqttCommandPublisher, MqttSensorProvider
+from app.persistence.db import AsyncSessionLocal
 from app.modules.weather.open_meteo_client import OpenMeteoWeatherProvider
 from app.settings import settings
 
 _weather = OpenMeteoWeatherProvider()
 _sensor = MqttSensorProvider()
 _pump = MqttCommandPublisher()
-_repo = IrrigationRepository()
 
 
 @tool
@@ -56,5 +57,12 @@ def log_irrigation_event(
 ) -> dict:
     """Logs an irrigation event to the database with next-irrigation estimate."""
     next_irrigation = (datetime.now() + timedelta(days=3)).isoformat()
-    _repo.log_event(moisture, amount, duration, next_irrigation, crop, weather)
+
+    async def _do_log() -> None:
+        async with AsyncSessionLocal() as session:
+            await IrrigationRepository(session).log_event(
+                moisture, amount, duration, next_irrigation, crop, weather
+            )
+
+    asyncio.run(_do_log())
     return {"logged": True, "next_irrigation": next_irrigation}

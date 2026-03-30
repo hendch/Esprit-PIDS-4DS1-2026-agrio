@@ -29,6 +29,7 @@ async def init_models() -> None:
     # Import models so SQLAlchemy metadata includes all mapped tables.
     from app.modules.auth import models as _auth_models  # noqa: F401
     from app.modules.farms import models as _farm_models  # noqa: F401
+    from app.modules.irrigation import models as _irrigation_models  # noqa: F401
 
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
