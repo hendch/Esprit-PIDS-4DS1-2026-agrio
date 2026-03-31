@@ -1,3 +1,6 @@
 .env
-agrio_backend.egg-info
-__pycache__
+.venv/
+agrio_backend.egg-info/
+__pycache__/
+.pytest_cache/
+pytest-cache-files-*/

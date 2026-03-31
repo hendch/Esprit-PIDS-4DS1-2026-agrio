@@ -266,9 +266,6 @@ export function IrrigationScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: OFFSET_WHITE },
-  calendarIcon: { 
-    fontSize: 20 
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
