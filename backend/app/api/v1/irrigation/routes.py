@@ -95,7 +95,8 @@ async def get_dashboard_data(session: AsyncSession = Depends(get_async_session))
 
     moisture_data = None
     try:
-        moisture_data = _sensor.get_cached_reading()
+        # Wait briefly for a real MQTT reading so dashboard shows live:true when Wokwi/sim is publishing.
+        moisture_data = _sensor.get_latest_reading_sync()
     except Exception as e:
         log.warning("MQTT Sensor failed: %s", e)
 

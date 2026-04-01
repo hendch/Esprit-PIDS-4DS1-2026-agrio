@@ -4,7 +4,11 @@ import { useUserStore } from "../userStore/userStore";
 
 import { getApiBaseUrl } from "./apiBaseUrl";
 
-export const API_TIMEOUT_MS = 8000;
+/** Default for typical API calls (auth, dashboard, etc.). */
+export const API_TIMEOUT_MS = 30_000;
+
+/** Irrigation `/check` runs the LLM agent on the server and often exceeds the default. */
+export const IRRIGATION_CHECK_TIMEOUT_MS = 120_000;
 
 export const httpClient = axios.create({
   baseURL: getApiBaseUrl(),

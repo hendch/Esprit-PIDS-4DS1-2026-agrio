@@ -67,9 +67,11 @@ def _register_middleware(application: FastAPI) -> None:
     from app.middleware.cors import add_cors
     from app.middleware.logging import LoggingMiddleware
 
-    add_cors(application)
-    application.add_middleware(AuthMiddleware)
+    # Last added = outermost. CORS must run first so OPTIONS preflight gets Allow-* headers
+    # before AuthMiddleware returns 401 without Authorization.
     application.add_middleware(LoggingMiddleware)
+    application.add_middleware(AuthMiddleware)
+    add_cors(application)
 
 
 def _register_routers(application: FastAPI) -> None:

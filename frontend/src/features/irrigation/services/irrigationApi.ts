@@ -1,4 +1,4 @@
-import { httpClient } from "../../../core/api/httpClient";
+import { httpClient, IRRIGATION_CHECK_TIMEOUT_MS } from "../../../core/api/httpClient";
 
 export interface IrrigationDecisionResponse {
   decision: string;
@@ -26,11 +26,11 @@ export const irrigationApi = {
     lon: number,
   ): Promise<IrrigationDecisionResponse> => {
     try {
-      const response = await httpClient.post("/api/v1/irrigation/check", {
-        crop,
-        lat,
-        lon,
-      });
+      const response = await httpClient.post(
+        "/api/v1/irrigation/check",
+        { crop, lat, lon },
+        { timeout: IRRIGATION_CHECK_TIMEOUT_MS },
+      );
       return response.data;
     } catch (error) {
       console.error("Error checking irrigation API:", error);

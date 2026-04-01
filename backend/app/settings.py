@@ -37,6 +37,14 @@ class Settings(BaseSettings):
     open_meteo_base_url: str = "https://api.open-meteo.com"
     media_root: str = "./media"
 
+    # Comma-separated; cannot use * when allow_credentials=True. Include Expo web dev server.
+    cors_origins: str = Field(
+        default=(
+            "http://localhost:8081,http://127.0.0.1:8081,"
+            "http://localhost:19006,http://127.0.0.1:19006"
+        ),
+    )
+
     model_config = SettingsConfigDict(env_prefix="AGRIO_", env_file=".env")
 
 
