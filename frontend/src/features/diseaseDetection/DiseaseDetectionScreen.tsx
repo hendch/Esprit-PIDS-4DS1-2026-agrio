@@ -20,6 +20,7 @@ import { useTheme } from "../../core/theme/useTheme";
 import { useLanguage } from "../../core/language/useLanguage";
 import { diagnoseImage, loadModel, DiagnosisResult } from "./diseaseDetectionService";
 import { DISEASE_DATA, SCREEN_LABELS } from "./diseaseAdviceData";
+import { saveScan, fetchScanHistory, ScanResultDTO } from "./diseaseApi";
 
 const OFFSET_WHITE = "#FAFAF8";
 const GREEN = "#4CAF50";
@@ -95,6 +96,26 @@ export function DiseaseDetectionScreen() {
       .catch((err) => console.warn("Model load failed:", err));
   }, []);
 
+  // Load scan history from backend on mount
+  useEffect(() => {
+    fetchScanHistory()
+      .then((scans) => {
+        const entries: DiagnosisEntry[] = scans.map((s) => ({
+          id: s.id,
+          name: s.disease_name ?? "Unknown",
+          confidence: s.confidence ?? 0,
+          date: new Date(s.scanned_at).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          severity: getSeverity(s.confidence ?? 0, s.is_healthy),
+        }));
+        setHistory(entries);
+      })
+      .catch((err) => console.warn("Failed to load scan history:", err));
+  }, []);
+
   const runDiagnosis = async (imageUri: string) => {
     setIsLoading(true);
     setLastImageUri(imageUri);
@@ -109,8 +130,27 @@ export function DiseaseDetectionScreen() {
         year: "numeric",
       });
 
+      // Look up advice to send to backend
+      const info = DISEASE_DATA[result.name];
+      const advice = info?.en?.advice ?? "";
+
+      // Save to backend (fire-and-forget — don't block the UI)
+      let savedId = Date.now().toString();
+      saveScan({
+        disease_name: result.displayName,
+        confidence: result.confidence,
+        severity,
+        plant_name: result.plant,
+        is_healthy: result.isHealthy,
+        guidance: advice || undefined,
+      })
+        .then((saved) => {
+          savedId = saved.id;
+        })
+        .catch((err) => console.warn("Failed to save scan to backend:", err));
+
       const entry: DiagnosisEntry = {
-        id: Date.now().toString(),
+        id: savedId,
         name: result.displayName,
         confidence: result.confidence,
         date: today,
