@@ -153,14 +153,37 @@ sdk.dir=C:\\Users\\YOUR_USERNAME\\AppData\\Local\\Android\\Sdk
 
 ---
 
-## 4) IoT Simulation (Wokwi ESP32)
+## 4) IoT Simulation (Wokwi ESP32 — Local via VS Code)
 
 The irrigation system uses an ESP32 that communicates with the backend via MQTT.
+The simulation runs **locally inside VS Code** using the Wokwi extension (free, no paid plan needed).
 
-1. Open the Wokwi project (ask the team for the link or use the `sketch.txt` + `diagram.json` in the repo root)
-2. Press **Play** to start the simulation
-3. The ESP32 connects to `test.mosquitto.org` and publishes soil moisture values to `farm/soil_moisture`
-4. The backend listens on the same MQTT topic and can send irrigation commands back to `farm/irrigation_command`
+### 4.1) One-time setup (first time only)
+
+1. Install the **Wokwi Simulator** extension in VS Code (`Ctrl+Shift+X` → search "Wokwi")
+2. Get your free license key:
+   - Open [wokwi.com/license](https://wokwi.com/license) and sign in with your Wokwi account
+   - Click **"Activate"** — VS Code will automatically detect the key
+   - Or press `F1` → `Wokwi: Manually Enter License Key` and paste it
+
+### 4.2) Run the simulation
+
+1. Open `backend/hardware/diagram.json` in VS Code
+2. Press `F1` → type **"Wokwi: Start Simulator"** → Enter
+3. The simulator opens inside VS Code — the ESP32 will:
+   - Connect to WiFi (`Wokwi-GUEST`)
+   - Connect to `broker.hivemq.com` via MQTT
+   - Publish simulated soil moisture values to `farm/soil_moisture` every 3 seconds
+
+### 4.3) What the simulation does
+
+| MQTT Topic | Direction | Description |
+|---|---|---|
+| `farm/soil_moisture` | ESP32 → Backend | Moisture % (cycles 20%→80%) |
+| `farm/irrigation_command` | Backend → ESP32 | `ON` / `OFF` relay command |
+
+> The backend must also use `broker.hivemq.com` (already set in `.env`).
+> When connected, the dashboard will show `"live": true` instead of fallback data.
 
 ---
 
@@ -169,7 +192,7 @@ The irrigation system uses an ESP32 that communicates with the backend via MQTT.
 1. **Start PostgreSQL**: `cd backend && docker compose up -d`
 2. **Start backend**: `cd backend && uvicorn app.main:app --reload`
 3. **Start frontend**: `cd frontend && npx expo run:android`
-4. **Start Wokwi simulation**: Press Play in the Wokwi editor
+4. **Start Wokwi simulation**: Open `backend/hardware/diagram.json` → `F1` → `Wokwi: Start Simulator`
 
 ### In the app:
 - **Sign Up** with an email and password

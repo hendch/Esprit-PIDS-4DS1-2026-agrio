@@ -37,6 +37,36 @@ class Settings(BaseSettings):
     open_meteo_base_url: str = "https://api.open-meteo.com"
     media_root: str = "./media"
 
+    # S3 storage
+    s3_bucket_name: str = ""
+    s3_region: str = "eu-west-1"
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
+
+    # Sentinel satellite imagery
+    sentinel_api_url: str = "https://scihub.copernicus.eu/dhus/api"
+    sentinel_username: str = ""
+    sentinel_password: str = ""
+
+    # Remote disease-detection model
+    disease_model_url: str = ""
+    disease_model_api_key: str = ""
+
+    # Email (SMTP)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = "noreply@agrio.app"
+
+    # SMS (Twilio)
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_from_number: str = ""
+
+    # Push notifications (Firebase)
+    firebase_credentials_json: str = ""
+
     # Comma-separated; cannot use * when allow_credentials=True. Include Expo web dev server.
     cors_origins: str = Field(
         default=(
@@ -45,7 +75,7 @@ class Settings(BaseSettings):
         ),
     )
 
-    model_config = SettingsConfigDict(env_prefix="AGRIO_", env_file=("backend.env", ".env"))
+    model_config = SettingsConfigDict(env_prefix="AGRIO_", env_file=".env")
 
 
 settings = Settings()
