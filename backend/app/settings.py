@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
 
-    mqtt_broker_host: str = "test.mosquitto.org"
+    mqtt_broker_host: str = "broker.hivemq.com"
     mqtt_broker_port: int = 1883
     mqtt_sensor_topic: str = "farm/soil_moisture"
     mqtt_command_topic: str = "farm/irrigation_command"
