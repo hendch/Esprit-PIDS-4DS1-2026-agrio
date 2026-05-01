@@ -36,6 +36,12 @@ class Settings(BaseSettings):
 
     open_meteo_base_url: str = "https://api.open-meteo.com"
     media_root: str = "./media"
+    fertilizer_model_path: str = (
+        "app/modules/fertilizer/model/fertilizer_recommendation_rf.joblib"
+    )
+    fertilizer_feature_schema_path: str = (
+        "app/modules/fertilizer/model/fertilizer_feature_schema.json"
+    )
 
     # Comma-separated; cannot use * when allow_credentials=True. Include Expo web dev server.
     cors_origins: str = Field(

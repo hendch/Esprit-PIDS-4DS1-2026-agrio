@@ -1,4 +1,5 @@
 import { httpClient } from "../../core/api/httpClient";
+import { cropLabel } from "./cropOptions";
 
 export type BoundaryPoint = {
   latitude: number;
@@ -110,7 +111,7 @@ function colorForIndex(index: number): string {
 }
 
 export function toFieldDisplayItem(record: FieldBoundaryRecord, index = 0): FieldDisplayItem {
-  const crop = record.cropType || "Unassigned crop";
+  const crop = cropLabel(record.cropType);
   return {
     id: record.id,
     name: record.name,
@@ -146,4 +147,8 @@ export async function saveFieldBoundary(payload: FieldBoundaryPayload): Promise<
   });
 
   return toFieldBoundaryRecord(data);
+}
+
+export async function deleteFieldBoundary(fieldId: string): Promise<void> {
+  await httpClient.delete(`/api/v1/fields/${fieldId}`);
 }

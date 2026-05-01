@@ -172,18 +172,18 @@ export function LandScreen() {
               style={styles.fieldCard}
               onPress={() => nav.navigate(Routes.FieldDetail, { fieldId: field.id })}
             >
-              <View style={[styles.fieldImage, { height: imageHeight, backgroundColor: field.imageTint }]}>
-                <View style={styles.fieldImageTags}>
-                  <View style={styles.tagGreen}>
-                    <Text style={styles.tagText}>{field.name}</Text>
-                  </View>
-                  <View style={[styles.tagStatus, { backgroundColor: statusColor(field.status) }]}>
-                    <Text style={styles.tagStatusText}>{field.status}</Text>
+              <View style={[styles.fieldImage, { height: imageHeight }]}>
+                <View style={styles.fieldSummaryPreview}>
+                  <Text style={styles.fieldSummaryTitle}>{field.name}</Text>
+                  <Text style={styles.fieldSummarySubtitle}>{field.crop}</Text>
+                  <View style={styles.fieldSummaryMetaRow}>
+                    <Text style={styles.fieldSummaryMeta}>{field.areaHa} ha</Text>
+                    <Text style={styles.fieldSummaryMeta}>{field.points.length} boundary points</Text>
                   </View>
                 </View>
-                <View style={[styles.fieldImageTags, styles.fieldImageTagsBottom]}>
-                  <View style={styles.tagGreen}>
-                    <Text style={styles.tagText}>{field.crop}</Text>
+                <View style={styles.fieldImageTags}>
+                  <View style={[styles.tagStatus, { backgroundColor: statusColor(field.status) }]}>
+                    <Text style={styles.tagStatusText}>{field.status}</Text>
                   </View>
                 </View>
               </View>
@@ -312,23 +312,40 @@ const styles = StyleSheet.create({
   fieldImage: {
     width: "100%",
     position: "relative",
+    backgroundColor: "#F7F7F4",
   },
+  fieldSummaryPreview: {
+    flex: 1,
+    justifyContent: "flex-end",
+    padding: 18,
+    backgroundColor: "#F7F7F4",
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
+  },
+  fieldSummaryTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#2C2C2C",
+    marginBottom: 4,
+  },
+  fieldSummarySubtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 12,
+  },
+  fieldSummaryMetaRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  fieldSummaryMeta: { fontSize: 13, color: "#555", fontWeight: "600" },
   fieldImageTags: {
     position: "absolute",
     top: 12,
     left: 12,
     right: 12,
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
   },
-  fieldImageTagsBottom: { top: undefined, bottom: 12 },
-  tagGreen: {
-    backgroundColor: "rgba(76, 175, 80, 0.85)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  tagText: { color: "#FFF", fontWeight: "600", fontSize: 13 },
   tagStatus: {
     paddingHorizontal: 10,
     paddingVertical: 6,

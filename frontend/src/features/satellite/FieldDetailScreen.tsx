@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   View,
   Text,
   ScrollView,
@@ -13,11 +14,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Routes } from "../../core/navigation/routes";
 import { useTheme } from "../../core/theme/useTheme";
 import {
+  deleteFieldBoundary,
   FieldDisplayItem,
   FieldStatus,
   getFieldBoundary,
   toFieldDisplayItem,
 } from "./fieldBoundaryService";
+import {
+  FertilizerRecommendation,
+  getFertilizerRecommendation,
+} from "./fertilizerRecommendationService";
 
 const OFFSET_WHITE = "#FAFAF8";
 const GREEN = "#4CAF50";
@@ -66,6 +72,10 @@ export function FieldDetailScreen() {
   const imageHeight = width * 0.45;
   const [field, setField] = useState<FieldDisplayItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCheckingFertilizer, setIsCheckingFertilizer] = useState(false);
+  const [fertilizerRecommendation, setFertilizerRecommendation] =
+    useState<FertilizerRecommendation | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -101,6 +111,54 @@ export function FieldDetailScreen() {
       isMounted = false;
     };
   }, [fieldId]);
+
+  const deleteField = () => {
+    if (!fieldId || !field) {
+      return;
+    }
+
+    Alert.alert(
+      "Delete field",
+      `Delete ${field.name}? This will free its saved boundary on the map.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsDeleting(true);
+              await deleteFieldBoundary(fieldId);
+              setIsDeleting(false);
+              nav.goBack();
+            } catch {
+              setIsDeleting(false);
+              Alert.alert("Delete failed", "Could not delete this field. Please try again.");
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const checkFertilizer = async () => {
+    if (!fieldId) {
+      return;
+    }
+
+    try {
+      setIsCheckingFertilizer(true);
+      const recommendation = await getFertilizerRecommendation(fieldId);
+      setFertilizerRecommendation(recommendation);
+    } catch {
+      Alert.alert(
+        "Fertilizer check failed",
+        "Could not generate a fertilizer recommendation. Make sure the backend model file is installed.",
+      );
+    } finally {
+      setIsCheckingFertilizer(false);
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -178,6 +236,34 @@ export function FieldDetailScreen() {
           </View>
           <Text style={styles.calendarLine}>Planted: {field.planted}</Text>
           <Text style={styles.calendarLine}>Est. Harvest: {field.estHarvest}</Text>
+          <Pressable
+            style={[styles.fertilizerBtn, isCheckingFertilizer && styles.fertilizerBtnDisabled]}
+            onPress={checkFertilizer}
+            disabled={isCheckingFertilizer}
+          >
+            <Text style={styles.fertilizerBtnText}>
+              {isCheckingFertilizer ? "Checking..." : "Check Fertilizer"}
+            </Text>
+          </Pressable>
+          {fertilizerRecommendation ? (
+            <View style={styles.fertilizerCard}>
+              <Text style={styles.fertilizerTitle}>Fertilizer Recommendation</Text>
+              <Text style={styles.fertilizerFormula}>{fertilizerRecommendation.formula}</Text>
+              <Text style={styles.fertilizerLine}>
+                Apply {fertilizerRecommendation.total_fertilizer_kg} kg total
+              </Text>
+              <Text style={styles.fertilizerExplain}>
+                {fertilizerRecommendation.explanation}
+              </Text>
+            </View>
+          ) : null}
+          <Pressable
+            style={[styles.deleteBtn, isDeleting && styles.deleteBtnDisabled]}
+            onPress={deleteField}
+            disabled={isDeleting}
+          >
+            <Text style={styles.deleteBtnText}>{isDeleting ? "Deleting..." : "Delete Field"}</Text>
+          </Pressable>
         </View>
 
         {/* Variable Rate Application */}
@@ -277,6 +363,38 @@ const styles = StyleSheet.create({
   calendarIcon: { fontSize: 16, marginRight: 8 },
   calendarTitle: { fontSize: 14, fontWeight: "600", color: "#2C2C2C" },
   calendarLine: { fontSize: 13, color: "#555", marginLeft: 24 },
+  fertilizerBtn: {
+    marginTop: 18,
+    backgroundColor: GREEN,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  fertilizerBtnDisabled: { opacity: 0.7 },
+  fertilizerBtnText: { color: "#FFF", fontSize: 14, fontWeight: "700" },
+  fertilizerCard: {
+    marginTop: 14,
+    backgroundColor: "#F6FBF6",
+    borderWidth: 1,
+    borderColor: "#C8E6C9",
+    borderRadius: 12,
+    padding: 14,
+  },
+  fertilizerTitle: { fontSize: 13, color: "#555", marginBottom: 4 },
+  fertilizerFormula: { fontSize: 20, fontWeight: "700", color: "#2E7D32", marginBottom: 8 },
+  fertilizerLine: { fontSize: 14, color: "#2C2C2C", marginBottom: 4 },
+  fertilizerExplain: { fontSize: 13, color: "#555", lineHeight: 19, marginTop: 6 },
+  deleteBtn: {
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: "#E53935",
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: "center",
+    backgroundColor: "#FFF",
+  },
+  deleteBtnDisabled: { opacity: 0.7 },
+  deleteBtnText: { color: "#E53935", fontSize: 14, fontWeight: "700" },
   vraSection: { marginTop: 24, paddingHorizontal: 24 },
   vraTitle: { fontSize: 18, fontWeight: "700", color: "#2C2C2C", marginBottom: 12 },
   vraCard: {
