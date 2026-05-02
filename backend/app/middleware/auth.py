@@ -17,6 +17,7 @@ _PUBLIC_AUTH_PATHS = frozenset(
         "/api/v1/auth/login",
         "/api/v1/auth/register",
         "/api/v1/auth/refresh",
+        "/api/v1/community/categories",
     }
 )
 
@@ -29,7 +30,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if normalized in _PUBLIC_AUTH_PATHS:
             return await call_next(request)
 
-        if any(seg in path for seg in _SKIP_PREFIXES):
+        if any(path.startswith(seg) for seg in _SKIP_PREFIXES):
             return await call_next(request)
 
         auth_header: str | None = request.headers.get("authorization")

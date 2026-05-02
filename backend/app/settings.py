@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     market_forecast_cache_dir: str = "./data/market_prices/cache"
     market_retrain_on_startup: bool = False
 
+    produce_data_dir: str = "data/produce_prices/raw"
+    produce_forecast_cache_dir: str = "data/produce_prices/cache"
+    produce_forecast_horizon: int = 12
+    produce_retrain_on_startup: bool = False
+
     # Comma-separated; cannot use * when allow_credentials=True. Include Expo web dev server.
     cors_origins: str = Field(
         default=(

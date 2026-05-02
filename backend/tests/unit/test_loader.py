@@ -50,6 +50,24 @@ def _make_regional_df(series_name: str, start: str = "2008-01-01", periods: int 
     return df
 
 
+def _make_fodder_df(series_name: str, start: str = "2008-01-01", periods: int = 12) -> pd.DataFrame:
+    """Return a minimal wide-format fodder DataFrame (unit TND/bale)."""
+    idx = pd.date_range(start=start, periods=periods, freq="MS")
+    df = pd.DataFrame(
+        {
+            "nord": [10.0 + i * 0.5 for i in range(periods)],
+            "sahel": [11.0 + i * 0.5 for i in range(periods)],
+            "centre_et_sud": [9.0 + i * 0.5 for i in range(periods)],
+        },
+        index=idx,
+    )
+    df.index.name = "date"
+    df["national_avg"] = df[["nord", "sahel", "centre_et_sud"]].mean(axis=1)
+    df["series"] = series_name
+    df["unit"] = "TND/bale"
+    return df
+
+
 def _make_meat_df(start: str = "2008-01-01", periods: int = 12) -> pd.DataFrame:
     """Return a minimal wide-format meat DataFrame."""
     idx = pd.date_range(start=start, periods=periods, freq="MS")
@@ -68,7 +86,7 @@ def _make_meat_df(start: str = "2008-01-01", periods: int = 12) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def _patched_loader(tmp_path: Path) -> LivestockDataLoader:
-    """Return a LivestockDataLoader with all six series pre-loaded via mocks."""
+    """Return a LivestockDataLoader with all eight series pre-loaded via mocks."""
     loader = LivestockDataLoader(data_dir=tmp_path)
     loader._load_xlsx_regional = MagicMock(side_effect=[  # type: ignore[method-assign]
         _make_regional_df("brebis_suitees"),
@@ -80,6 +98,10 @@ def _patched_loader(tmp_path: Path) -> LivestockDataLoader:
         _make_regional_df("bovins_suivis"),
         _make_regional_df("vaches_gestantes"),
     ])
+    loader.load_fodder = MagicMock(return_value={  # type: ignore[method-assign]
+        "tbn": _make_fodder_df("tbn"),
+        "qrt": _make_fodder_df("qrt"),
+    })
     return loader
 
 
@@ -255,7 +277,8 @@ class TestLoadAll:
     def test_livestock_unit_is_tnd_per_head(self, tmp_path):
         loader = _patched_loader(tmp_path)
         data = loader.load_all()
-        livestock_series = [s for s in ALL_SERIES if s != "viandes_rouges"]
+        _FODDER = {"tbn", "qrt"}
+        livestock_series = [s for s in ALL_SERIES if s not in {"viandes_rouges"} | _FODDER]
         for name in livestock_series:
             assert data[name]["unit"].iloc[0] == "TND/head", (
                 f"Series '{name}' unexpected unit: {data[name]['unit'].iloc[0]}"

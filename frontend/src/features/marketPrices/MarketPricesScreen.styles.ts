@@ -204,4 +204,33 @@ export const styles = StyleSheet.create({
   tabLabelActive: { color: GREEN, fontWeight: "600" },
 
   pressed: { opacity: 0.85 },
+
+  // Category toggle (Livestock / Fodder)
+  categoryToggle: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  categoryPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
+  categoryPillActive: {
+    backgroundColor: BLUE_LIGHT,
+    borderColor: BLUE,
+  },
+  categoryPillText: {
+    fontSize: 13,
+    color: '#555',
+    fontWeight: '500',
+  },
+  categoryPillTextActive: {
+    color: BLUE,
+    fontWeight: '700',
+  },
 });

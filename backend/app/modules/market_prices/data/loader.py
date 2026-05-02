@@ -39,6 +39,8 @@ ALL_SERIES: tuple[str, ...] = (
     "viandes_rouges",
     "bovins_suivis",
     "vaches_gestantes",
+    "tbn",
+    "qrt",
 )
 
 #: French month name → integer month number (handles accent variants).
@@ -398,6 +400,8 @@ class LivestockDataLoader:
             if df is not None:
                 result[series_name] = df
 
+        fodder = self.load_fodder()
+        result.update(fodder)
         return result
 
     def load_livestock_panel(self) -> pd.DataFrame:
@@ -484,6 +488,96 @@ class LivestockDataLoader:
             .sort_values("date")
             .reset_index(drop=True)
         )
+
+    def load_fodder(self) -> dict[str, pd.DataFrame]:
+        """Load straw (tbn) and clover (qrt) from Arabic Excel files.
+
+        Returns dict with keys 'tbn' and 'qrt'.
+        Each DataFrame has: DatetimeIndex (monthly, day=1),
+        columns: nord, sahel, centre_et_sud, national_avg, series, unit.
+        Missing files are silently skipped.
+        """
+        import re
+
+        _FILES = {
+            "tbn": "تطور-أسعار-التبن.xlsx",
+            "qrt": "تطور-أسعار-القرط.xlsx",
+        }
+        _REGIONS = {
+            "الشمال": "nord",
+            "الساحل": "sahel",
+            "الوسط /ج": "centre_et_sud",
+            "الوسط": "centre_et_sud",
+        }
+        _MONTH_COL = {m: m for m in range(1, 13)}
+
+        results: dict[str, pd.DataFrame] = {}
+        for series_name, filename in _FILES.items():
+            path = self._dir / filename
+            if not path.exists():
+                logger.info("Fodder file not found, skipping: %s", path)
+                continue
+
+            df_raw = pd.read_excel(path, sheet_name="Feuil1", header=None)
+            records: list[dict] = []
+            current_year: int | None = None
+
+            for _, row in df_raw.iterrows():
+                full_row_str = " ".join(str(v) for v in row.values if pd.notna(v))
+                year_match = re.search(r"سنة\s*(\d{4})", full_row_str)
+                if year_match:
+                    current_year = int(year_match.group(1))
+                    continue
+
+                cell0 = str(row[0]).strip() if pd.notna(row[0]) else ""
+                if cell0 in _REGIONS and current_year:
+                    region = _REGIONS[cell0]
+                    for month_num, col_idx in _MONTH_COL.items():
+                        val = row[col_idx]
+                        if pd.isna(val):
+                            continue
+                        val_str = str(val).strip().replace(",", ".")
+                        parts = re.split(r"-(?=\d)", val_str)
+                        if len(parts) == 2:
+                            try:
+                                a, b = float(parts[0]), float(parts[1])
+                                records.append(
+                                    {
+                                        "year": current_year,
+                                        "month": month_num,
+                                        "region": region,
+                                        "price": (max(a, b) + min(a, b)) / 2,
+                                        "price_min": min(a, b),
+                                        "price_max": max(a, b),
+                                    }
+                                )
+                            except ValueError:
+                                pass
+
+            if not records:
+                logger.warning("No records parsed from fodder file: %s", path)
+                continue
+
+            df = pd.DataFrame(records)
+            df["date"] = pd.to_datetime(df[["year", "month"]].assign(day=1))
+            df = (
+                df.pivot_table(index="date", columns="region", values="price", aggfunc="mean")
+                .reset_index()
+            )
+            df.index = pd.DatetimeIndex(df["date"])
+            df = df.drop(columns=["date"])
+            df.index.name = "date"
+
+            available_regions = [c for c in REGION_COLS if c in df.columns]
+            df["national_avg"] = df[available_regions].mean(axis=1)
+            df["series"] = series_name
+            df["unit"] = "TND/bale"
+
+            _validate_prices_positive(df, series_name)
+            _validate_no_duplicate_dates(df, series_name)
+            results[series_name] = df
+
+        return results
 
     # ------------------------------------------------------------------
     # Private loaders

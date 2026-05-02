@@ -29,8 +29,8 @@ class TestLoadAll:
     def test_returns_all_six_series(self, data_dir):
         loader = LivestockDataLoader(data_dir=data_dir)
         result = loader.load_all()
-        assert len(result) == 6, (
-            f"Expected 6 series, got {len(result)}: {list(result.keys())}"
+        assert len(result) == len(ALL_SERIES), (
+            f"Expected {len(ALL_SERIES)} series, got {len(result)}: {list(result.keys())}"
         )
 
     def test_all_series_names_present(self, data_dir):

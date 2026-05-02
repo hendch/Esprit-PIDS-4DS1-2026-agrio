@@ -21,6 +21,7 @@ import pandas as pd
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.middleware.auth import get_current_user
 from app.modules.market_prices.data.loader import ALL_SERIES, LivestockDataLoader
 from app.modules.market_prices.pipeline import ForecastPipeline
 from app.modules.market_prices.repository import MarketPriceRepository
@@ -52,6 +53,19 @@ _SERIES_DESCRIPTIONS: dict[str, str] = {
     "viandes_rouges": "Red meat live-weight sale price per kg by species",
     "bovins_suivis": "Monitored cattle — average price per head, all breeds",
     "vaches_gestantes": "Pregnant cows — average price per head by region",
+    "tbn": "Straw (التبن) — animal fodder, price per bale by region",
+    "qrt": "Clover/Vetch (القرط) — green fodder, price per bale by region",
+}
+
+_SERIES_METADATA: dict[str, dict] = {
+    "brebis_suitees": {"display_name": "Brebis suitées", "unit": "TND/head", "category": "livestock"},
+    "genisses_pleines": {"display_name": "Génisses pleines", "unit": "TND/head", "category": "livestock"},
+    "vaches_suitees": {"display_name": "Vaches suitées", "unit": "TND/head", "category": "livestock"},
+    "viandes_rouges": {"display_name": "Viandes rouges", "unit": "TND/kg", "category": "livestock"},
+    "bovins_suivis": {"display_name": "Bovins suivis", "unit": "TND/head", "category": "livestock"},
+    "vaches_gestantes": {"display_name": "Vaches gestantes", "unit": "TND/head", "category": "livestock"},
+    "tbn": {"display_name": "Paille (التبن)", "unit": "TND/bale", "category": "fodder"},
+    "qrt": {"display_name": "Vesce (القرط)", "unit": "TND/bale", "category": "fodder"},
 }
 
 _VALID_SERIES = set(ALL_SERIES)
@@ -87,7 +101,7 @@ def _cagr(series: pd.Series) -> float:
 
 
 @router.get("/series", response_model=list[SeriesInfo])
-async def list_series(db: DbSession) -> list[SeriesInfo]:
+async def list_series(db: DbSession, _: dict = Depends(get_current_user)) -> list[SeriesInfo]:
     """Return summary information for every loaded price series.
 
     Loads metadata (latest price, CAGR) from the raw Excel files and
@@ -162,6 +176,7 @@ async def get_series_history(
     start: str = "2020-01",
     end: str | None = None,
     region: str = "national",
+    _: dict = Depends(get_current_user),
 ) -> list[PricePoint]:
     """Return monthly price history for *series_name* from the database.
 
@@ -217,6 +232,7 @@ async def create_forecast(
     body: ForecastRequest,
     background_tasks: BackgroundTasks,
     db: DbSession,
+    _: dict = Depends(get_current_user),
 ) -> ForecastResponse:
     """Run a price forecast or return today's cached result.
 
@@ -279,7 +295,7 @@ async def create_forecast(
 
 
 @router.get("/forecast/{series_name}/latest", response_model=ForecastResponse)
-async def get_latest_forecast(series_name: str, db: DbSession) -> ForecastResponse:
+async def get_latest_forecast(series_name: str, db: DbSession, _: dict = Depends(get_current_user)) -> ForecastResponse:
     """Return the most recently stored forecast for *series_name*.
 
     Raises ``404`` if no forecast has ever been generated for this series.
@@ -304,7 +320,7 @@ async def get_latest_forecast(series_name: str, db: DbSession) -> ForecastRespon
 
 
 @router.get("/forecast/{series_name}/scenarios", response_model=ScenariosResponse)
-async def get_forecast_scenarios(series_name: str, db: DbSession) -> ScenariosResponse:
+async def get_forecast_scenarios(series_name: str, db: DbSession, _: dict = Depends(get_current_user)) -> ScenariosResponse:
     """Return only the Monte Carlo scenario fan from the latest stored forecast.
 
     Raises ``404`` if no forecast has been saved yet.
@@ -338,6 +354,7 @@ async def batch_forecast(
     body: BatchForecastRequest,
     background_tasks: BackgroundTasks,
     db: DbSession,
+    _: dict = Depends(get_current_user),
 ) -> list[ForecastResponse]:
     """Run the forecast pipeline for multiple series sequentially.
 

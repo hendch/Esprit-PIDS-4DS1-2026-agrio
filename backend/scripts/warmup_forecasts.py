@@ -3,7 +3,7 @@
 Run from the backend/ directory:
     python scripts/warmup_forecasts.py
 
-Total: 21 combinations (5 series × 4 regions + viandes_rouges × 1 national).
+Total: 29 combinations (6 livestock × 4 regions + viandes_rouges × 1 + 2 fodder × 4).
 """
 import asyncio
 import sys
@@ -23,9 +23,17 @@ SERIES_REGIONS: dict[str, list[str]] = {
     "viandes_rouges":   ["national"],
     "bovins_suivis":    ["national", "nord", "sahel", "centre_et_sud"],
     "vaches_gestantes": ["national", "nord", "sahel", "centre_et_sud"],
+    "tbn":              ["national", "nord", "sahel", "centre_et_sud"],
+    "qrt":              ["national", "nord", "sahel", "centre_et_sud"],
 }
 
 TOTAL = sum(len(v) for v in SERIES_REGIONS.values())
+
+# Fodder series have data only through 2023; use a 36-month horizon so
+# forecasts extend into 2026 and remain useful from the current date.
+_FODDER_SERIES = {"tbn", "qrt"}
+_FODDER_HORIZON = 36
+_DEFAULT_HORIZON = 12
 
 
 async def main() -> None:
@@ -39,8 +47,9 @@ async def main() -> None:
             label = f"{series_name}/{region}"
             print(f"[{count:>2}/{TOTAL}] {label:<40}", end=" ", flush=True)
             t = time.time()
+            horizon = _FODDER_HORIZON if series_name in _FODDER_SERIES else _DEFAULT_HORIZON
             try:
-                result = pipeline.run(series_name, region=region)
+                result = pipeline.run(series_name, region=region, horizon=horizon)
                 elapsed = time.time() - t
 
                 # Unsupported combination (should not happen with this map)

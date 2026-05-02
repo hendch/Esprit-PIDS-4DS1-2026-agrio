@@ -12,6 +12,27 @@ from app.settings import settings
 logger = logging.getLogger(__name__)
 
 
+async def _alert_checker_loop() -> None:
+    from app.modules.notification.alert_checker import PriceAlertChecker
+    from app.persistence.db import AsyncSessionLocal
+
+    checker = PriceAlertChecker()
+    while True:
+        try:
+            async with AsyncSessionLocal() as db:
+                result = await checker.check_all(db)
+                if result["triggered"] > 0:
+                    logging.info(
+                        "[AlertChecker] %d alert(s) fired, %d checked, %d errors",
+                        result["triggered"],
+                        result["checked"],
+                        result["errors"],
+                    )
+        except Exception as e:
+            logging.error("[AlertChecker] loop error: %s", e)
+        await asyncio.sleep(3600)
+
+
 async def autonomous_worker():
     from app.modules.irrigation.repository import IrrigationRepository
     from app.api.v1.irrigation.routes import _get_agent
@@ -48,6 +69,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     await init_models()
     task = asyncio.create_task(autonomous_worker())
+    alert_task = asyncio.create_task(_alert_checker_loop())
 
     if settings.market_retrain_on_startup:
         from app.modules.market_prices.pipeline import ForecastPipeline
@@ -67,6 +89,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     yield
     task.cancel()
+    alert_task.cancel()
 
 
 def create_app() -> FastAPI:
@@ -104,6 +127,9 @@ def _register_routers(application: FastAPI) -> None:
     from app.api.v1.ledger.routes import router as ledger_router
     from app.api.v1.livestock.routes import router as livestock_router
     from app.api.v1.market_prices.routes import router as market_prices_router
+    from app.api.v1.notifications import router as notifications_router
+    from app.api.v1.community.routes import router as community_router
+    from app.api.v1.produce_prices.routes import router as produce_prices_router
     from app.api.v1.satellite.routes import router as satellite_router
 
     application.include_router(health_router, tags=["health"])
@@ -130,6 +156,21 @@ def _register_routers(application: FastAPI) -> None:
         market_prices_router,
         prefix=f"{prefix}/market-prices",
         tags=["market_prices"],
+    )
+    application.include_router(
+        notifications_router,
+        prefix=f"{prefix}/notifications",
+        tags=["notifications"],
+    )
+    application.include_router(
+        community_router,
+        prefix=f"{prefix}/community",
+        tags=["Community"],
+    )
+    application.include_router(
+        produce_prices_router,
+        prefix=f"{prefix}/produce-prices",
+        tags=["produce_prices"],
     )
 
 

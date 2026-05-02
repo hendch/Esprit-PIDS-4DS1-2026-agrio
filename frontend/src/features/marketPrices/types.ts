@@ -17,6 +17,7 @@ export interface SeriesInfo {
   latest_price: number;
   cagr_pct: number;
   regions: RegionPrices;
+  category?: 'livestock' | 'fodder';
 }
 
 export interface PricePoint {
@@ -67,3 +68,14 @@ export interface HistoryParams {
   end?: string;     // YYYY-MM
   region?: string;  // national | nord | sahel | centre_et_sud
 }
+
+export const SERIES_DISPLAY: Record<string, { label: string; category: 'livestock' | 'fodder' }> = {
+  brebis_suitees:   { label: 'Brebis suitées',  category: 'livestock' },
+  genisses_pleines: { label: 'Génisses pleines', category: 'livestock' },
+  vaches_suitees:   { label: 'Vaches suitées',   category: 'livestock' },
+  viandes_rouges:   { label: 'Viandes rouges',   category: 'livestock' },
+  bovins_suivis:    { label: 'Bovins suivis',     category: 'livestock' },
+  vaches_gestantes: { label: 'Vaches gestantes', category: 'livestock' },
+  tbn:              { label: 'Paille (التبن)',    category: 'fodder'    },
+  qrt:              { label: 'Vesce (القرط)',     category: 'fodder'    },
+};

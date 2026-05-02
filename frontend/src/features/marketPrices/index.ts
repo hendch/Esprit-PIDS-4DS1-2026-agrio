@@ -1,19 +1,19 @@
 import type { FeatureModule } from "../../core/featureRegistry/FeatureModule";
 import { Routes } from "../../core/navigation/routes";
-import { MarketPricesScreen } from "./MarketPricesScreen";
+import { PricesScreen } from "../prices/PricesScreen";
 
 export const marketPricesModule: FeatureModule = {
   id: "marketPrices",
   routes: [
     {
       name: Routes.MarketPrices,
-      component: MarketPricesScreen,
-      options: { title: "Market Prices", headerShown: false },
+      component: PricesScreen,
+      options: { title: "Prices", headerShown: false },
     },
   ],
   dashboardEntry: {
     title: "Market Prices",
-    subtitle: "Livestock price history & AI-powered forecasts",
+    subtitle: "Livestock & fodder price history and AI forecasts",
     routeName: Routes.MarketPrices,
     emoji: "📈",
   },

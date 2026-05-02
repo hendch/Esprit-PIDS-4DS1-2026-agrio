@@ -12,9 +12,20 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from jose import jwt
 
 from app.main import app
 from app.persistence.db import get_async_session
+from app.settings import settings
+
+
+def _make_test_token() -> str:
+    """Generate a valid JWT token for the test user using the app's secret."""
+    return jwt.encode(
+        {"sub": "test-user-001", "farm_id": "test-farm-001"},
+        settings.jwt_secret,
+        algorithm=settings.jwt_algorithm,
+    )
 
 # ---------------------------------------------------------------------------
 # Synthetic source-file fixture
@@ -84,6 +95,23 @@ def data_dir(tmp_path):
     for fname in _XLS_HTML_FILES:
         (tmp_path / fname).write_text(html, encoding="utf-8")
 
+    # --- Arabic fodder Excel files (tbn, qrt) --------------------------------
+    _FODDER_FILES = [
+        "تطور-أسعار-التبن.xlsx",
+        "تطور-أسعار-القرط.xlsx",
+    ]
+    _FODDER_REGIONS = ["الشمال", "الساحل", "الوسط /ج"]
+    for fname in _FODDER_FILES:
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Feuil1"
+        for year in [2020, 2021, 2022]:
+            ws.append([f"تطور أسعار لسنة {year}"] + [None] * 12)
+            for region_ar in _FODDER_REGIONS:
+                row = [region_ar] + ["10,0-8,0"] * 12
+                ws.append(row)
+        wb.save(tmp_path / fname)
+
     return tmp_path
 
 
@@ -126,8 +154,11 @@ async def async_client(mock_db_session: AsyncMock) -> AsyncClient:
         yield mock_db_session
 
     app.dependency_overrides[get_async_session] = _override_session
+    token = _make_test_token()
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={"Authorization": f"Bearer {token}"},
     ) as client:
         yield client
     app.dependency_overrides.clear()
