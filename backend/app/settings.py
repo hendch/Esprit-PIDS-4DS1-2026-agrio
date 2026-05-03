@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import SecretStr
+
 
 
 class Settings(BaseSettings):
@@ -36,6 +38,9 @@ class Settings(BaseSettings):
 
     open_meteo_base_url: str = "https://api.open-meteo.com"
     media_root: str = "./media"
+
+    cdse_client_id: str | None = None
+    cdse_client_secret: SecretStr | None = None
 
     # Comma-separated; cannot use * when allow_credentials=True. Include Expo web dev server.
     cors_origins: str = Field(
