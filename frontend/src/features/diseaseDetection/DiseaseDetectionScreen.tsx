@@ -555,24 +555,6 @@ export function DiseaseDetectionScreen() {
                 </View>
               )}
 
-              {/* Segmentation regions list (below advice) */}
-              {segResult && !segLoading && (
-                <View style={styles.segCard}>
-                  <View style={styles.segBody}>
-                    <Text style={[styles.segTitle, isRTL && styles.rtlText]}>
-                      {segResult.total_regions} {labels.regionsDetected}
-                    </Text>
-                    {segResult.regions.map((region, idx) => (
-                      <View key={idx} style={styles.segRegionRow}>
-                        <Text style={[styles.segRegionName, isRTL && styles.rtlText]}>
-                          {region.class_name}
-                        </Text>
-                        <Text style={styles.segRegionConf}>{region.confidence}%</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
               {segError && !segLoading && (
                 <View style={styles.segErrorCard}>
                   <Text style={[styles.segErrorText, isRTL && styles.rtlText]}>
@@ -589,7 +571,7 @@ export function DiseaseDetectionScreen() {
         {history.length === 0 && (
           <Text style={[styles.emptyHistory, isRTL && styles.rtlText]}>{labels.noHistory}</Text>
         )}
-        {history.map((entry) => (
+        {history.slice(0, 3).map((entry) => (
           <View key={entry.id} style={styles.historyCard}>
             <View style={styles.historyThumb}>
               {entry.thumbnailUri ? (
