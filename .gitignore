@@ -5,6 +5,26 @@ ios/
 node_modules/
 *.log
 
+.env
+.env.example
+backend/.env
+backend/.env.example
+frontend/.env
+frontend/.env.example
+
+.env
+.env.example
+backend/.env
+backend/.env.example
+frontend/.env
+frontend/.env.example
+
+.env
+.env.example
+backend/.env
+backend/.env.example
+frontend/.env
+frontend/.env.example
 # Firebase credentials - never commit these
 google-services.json
 *-firebase-adminsdk-*.json
