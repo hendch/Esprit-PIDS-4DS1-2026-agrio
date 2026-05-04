@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -43,17 +44,33 @@ export function ProfileScreen() {
 
   useEffect(() => {
     fetchProfile();
-    fetchDashboard();
   }, []);
+
+  // Refresh gamification data every time this screen comes into focus,
+  // so tasks completed on other screens (or by backend actions) show immediately.
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboard();
+    }, [])
+  );
 
   // Reset countdown when dashboard refreshes
   useEffect(() => {
     setTimeLeft(dashboard?.seconds_until_reset ?? 0);
   }, [dashboard?.seconds_until_reset]);
 
-  // Tick down every second
+  // Tick down every second; refresh dashboard the moment the reset hits
   useEffect(() => {
-    const interval = setInterval(() => setTimeLeft(t => Math.max(0, t - 1)), 1000);
+    const interval = setInterval(() => {
+      setTimeLeft(t => {
+        const next = Math.max(0, t - 1);
+        if (next === 0 && t > 0) {
+          // Reset just fired — pull fresh task states from backend
+          fetchDashboard();
+        }
+        return next;
+      });
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -89,7 +106,7 @@ export function ProfileScreen() {
         text: 'Camera',
         onPress: async () => {
           const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: 'images',
             quality: 0.8,
           });
           if (!result.canceled && result.assets[0]) {
@@ -101,7 +118,7 @@ export function ProfileScreen() {
         text: 'Gallery',
         onPress: async () => {
           const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: 'images',
             quality: 0.8,
           });
           if (!result.canceled && result.assets[0]) {

@@ -32,3 +32,16 @@ export interface LeaderboardEntry {
   login_streak: number;
   is_verified_farmer: boolean;
 }
+
+export interface AwardLoginResponse {
+  already_logged: boolean;
+  streak: number;
+  coins_earned: number;
+  new_balance: number;
+}
+
+export interface CompleteTaskResponse {
+  task_key: string;
+  coins_earned: number;
+  new_balance: number;
+}

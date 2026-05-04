@@ -53,10 +53,10 @@ async def _daily_task_reset_loop() -> None:
     tz_tunis = timezone(timedelta(hours=1))
     while True:
         now = datetime.now(tz_tunis)
-        next_8am = now.replace(hour=8, minute=0, second=0, microsecond=0)
-        if now.hour >= 8:
-            next_8am += timedelta(days=1)
-        wait_seconds = (next_8am - now).total_seconds()
+        next_8pm = now.replace(hour=20, minute=0, second=0, microsecond=0)
+        if now.hour >= 20:
+            next_8pm += timedelta(days=1)
+        wait_seconds = (next_8pm - now).total_seconds()
         await asyncio.sleep(wait_seconds)
         logging.info(
             "[DailyTasks] Reset at %s",

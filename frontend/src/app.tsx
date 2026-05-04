@@ -13,12 +13,14 @@ import { TUTORIAL_STEPS } from "./core/tutorial/types";
 import { useGamificationStore } from "./features/gamification/store";
 import { TutorialTooltip } from "./core/tutorial/TutorialTooltip";
 import { TutorialCompletion } from "./core/tutorial/TutorialCompletion";
+import { CoinToast } from "./core/gamification/CoinToast";
 
 function AppContent() {
   const { isDark } = useTheme();
   const nav = useNavigation<any>();
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
   const tutorial = useTutorialStore();
+  const gamification = useGamificationStore();
 
   // Load tutorial progress + award daily login once authenticated
   useEffect(() => {
@@ -55,6 +57,13 @@ function AppContent() {
               onSkip={tutorial.skip}
             />
           )}
+          {/* Coin toast — renders above everything */}
+          <CoinToast
+            visible={gamification.toast !== null}
+            amount={gamification.toast?.amount ?? 0}
+            reason={gamification.toast?.reason ?? ''}
+            onHide={gamification.hideToast}
+          />
         </View>
       </ThemeRoot>
 

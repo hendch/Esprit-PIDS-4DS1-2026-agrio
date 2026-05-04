@@ -63,10 +63,10 @@ class GamificationService:
 
         tz_tunis = timezone(timedelta(hours=1))
         now_tunis = datetime.now(tz_tunis)
-        tomorrow_8am = now_tunis.replace(hour=8, minute=0, second=0, microsecond=0)
-        if now_tunis.hour >= 8:
-            tomorrow_8am = tomorrow_8am + timedelta(days=1)
-        seconds_until_reset = int((tomorrow_8am - now_tunis).total_seconds())
+        next_8pm = now_tunis.replace(hour=20, minute=0, second=0, microsecond=0)
+        if now_tunis.hour >= 20:
+            next_8pm = next_8pm + timedelta(days=1)
+        seconds_until_reset = int((next_8pm - now_tunis).total_seconds())
 
         return {
             "balance": wallet.balance,

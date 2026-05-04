@@ -2,16 +2,27 @@ import { create } from 'zustand';
 import * as gamificationApi from './api';
 import type { GamificationDashboard, LeaderboardEntry } from './types';
 
+const TASK_LABELS: Record<string, string> = {
+  check_market_prices: 'Checked market prices',
+  check_herd_stats:    'Checked herd stats',
+  generate_forecast:   'Generated a forecast',
+  post_or_comment:     'Engaged in community',
+  record_health_event: 'Recorded health event',
+};
+
 interface GamificationState {
   dashboard: GamificationDashboard | null;
   leaderboard: LeaderboardEntry[];
   loading: boolean;
   error: string | null;
+  toast: { amount: number; reason: string } | null;
 
   fetchDashboard: () => Promise<void>;
   awardDailyLogin: () => Promise<void>;
   completeTask: (task_key: string) => Promise<void>;
   fetchLeaderboard: () => Promise<void>;
+  showToast: (amount: number, reason: string) => void;
+  hideToast: () => void;
 }
 
 export const useGamificationStore = create<GamificationState>((set, get) => ({
@@ -19,6 +30,10 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
   leaderboard: [],
   loading: false,
   error: null,
+  toast: null,
+
+  showToast: (amount, reason) => set({ toast: { amount, reason } }),
+  hideToast: () => set({ toast: null }),
 
   fetchDashboard: async () => {
     set({ loading: true, error: null });
@@ -32,9 +47,15 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
 
   awardDailyLogin: async () => {
     try {
-      await gamificationApi.awardLogin();
-      // Refresh dashboard to get updated balance
-      await get().fetchDashboard();
+      const result = await gamificationApi.awardLogin();
+      if (result.coins_earned > 0) {
+        get().showToast(result.coins_earned, `🔥 Day ${result.streak} login streak!`);
+      }
+      set(state => ({
+        dashboard: state.dashboard
+          ? { ...state.dashboard, balance: result.new_balance, login_streak: result.streak }
+          : null,
+      }));
     } catch {
       // Not a verified farmer or network error — silent
     }
@@ -43,19 +64,9 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
   completeTask: async (task_key: string) => {
     try {
       const result = await gamificationApi.completeTask(task_key);
-      // Patch dashboard state with updated balance and mark task completed
-      set(state => {
-        if (!state.dashboard) return {};
-        return {
-          dashboard: {
-            ...state.dashboard,
-            balance: result.new_balance,
-            tasks: state.dashboard.tasks.map(t =>
-              t.key === task_key ? { ...t, completed: true } : t,
-            ),
-          },
-        };
-      });
+      get().showToast(result.coins_earned, TASK_LABELS[task_key] ?? 'Daily task complete');
+      // Fetch authoritative state so any reset tasks show correctly alongside the new completion
+      await get().fetchDashboard();
     } catch {
       // Already completed today (400) or not verified farmer (403) — silent
     }
