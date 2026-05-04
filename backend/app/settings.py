@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     disease_model_api_key: str = ""
 
     # YOLOv8 segmentation model (.pt file path)
-    segmentation_model_path: str = ""
+    segmentation_model_path: str = "app/modules/disease/model/best.pt"
 
     # Email (SMTP)
     smtp_host: str = ""
