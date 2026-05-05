@@ -16,7 +16,6 @@ import { useUserStore } from "../../core/userStore/userStore";
 import { useThemeStore } from "../../core/theme/themeStore";
 import { useTheme } from "../../core/theme/useTheme";
 import { useLanguageStore } from "../../core/language/languageStore";
-import { Routes } from "../../core/navigation/routes";
 import { GREEN } from "../../core/theme/themeColors";
 import { useProfileStore } from "../../features/profile/store";
 import { useGamificationStore } from "../../features/gamification/store";
@@ -73,8 +72,7 @@ export function AppDrawer() {
 
   const handleLogout = () => {
     closeDrawer();
-    clearUser();
-    nav.reset({ index: 0, routes: [{ name: Routes.Login }] });
+    clearUser(); // RootNavigator automatically switches to Login when isAuthenticated becomes false
   };
 
   const name = displayName ?? "User";
