@@ -4,6 +4,7 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -48,6 +49,23 @@ async def _alert_checker_loop() -> None:
         await asyncio.sleep(3600)
 
 
+
+async def _daily_task_reset_loop() -> None:
+    tz_tunis = timezone(timedelta(hours=1))
+    while True:
+        now = datetime.now(tz_tunis)
+        next_8pm = now.replace(hour=20, minute=0, second=0, microsecond=0)
+        if now.hour >= 20:
+            next_8pm += timedelta(days=1)
+        wait_seconds = (next_8pm - now).total_seconds()
+        await asyncio.sleep(wait_seconds)
+        logging.info(
+            "[DailyTasks] Reset at %s",
+            datetime.now(tz_tunis).strftime("%Y-%m-%d %H:%M"),
+        )
+
+
+
 async def autonomous_worker():
     from app.modules.irrigation.repository import IrrigationRepository
     from app.api.v1.irrigation.routes import _get_agent
@@ -85,6 +103,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await init_models()
     task = asyncio.create_task(autonomous_worker())
     alert_task = asyncio.create_task(_alert_checker_loop())
+    daily_reset_task = asyncio.create_task(_daily_task_reset_loop())
 
     if settings.market_retrain_on_startup:
         from app.modules.market_prices.pipeline import ForecastPipeline
@@ -105,6 +124,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
     task.cancel()
     alert_task.cancel()
+    daily_reset_task.cancel()
 
 
 def create_app() -> FastAPI:
@@ -153,6 +173,8 @@ def _register_routers(application: FastAPI) -> None:
     from app.api.v1.media.routes import router as media_router
     from app.api.v1.produce_prices.routes import router as produce_prices_router
     from app.api.v1.satellite.routes import router as satellite_router
+    from app.api.v1.gamification import router as gamification_router
+    from app.api.v1.tutorial.routes import router as tutorial_router
 
     application.include_router(health_router, tags=["health"])
 
@@ -201,6 +223,16 @@ def _register_routers(application: FastAPI) -> None:
         produce_prices_router,
         prefix=f"{prefix}/produce-prices",
         tags=["produce_prices"],
+    )
+    application.include_router(
+        tutorial_router,
+        prefix=f"{prefix}/tutorial",
+        tags=["Tutorial"],
+    )
+    application.include_router(
+        gamification_router,
+        prefix=f"{prefix}/gamification",
+        tags=["Gamification"],
     )
 
 

@@ -8,6 +8,14 @@ from typing import Any
 
 import joblib
 import pandas as pd
+import sklearn.compose._column_transformer as _ct
+
+if not hasattr(_ct, '_RemainderColsList'):
+    class _RemainderColsList(list):
+        def __init__(self, columns, future_dtype=None):
+            super().__init__(columns)
+            self.future_dtype = future_dtype
+    _ct._RemainderColsList = _RemainderColsList
 
 from app.api.v1.fertilizer.schemas import FertilizerRecommendationRequest
 from app.modules.farms.models import Field

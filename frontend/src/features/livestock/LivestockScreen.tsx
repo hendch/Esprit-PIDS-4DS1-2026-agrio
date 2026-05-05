@@ -18,6 +18,8 @@ import { Routes } from '../../core/navigation/routes';
 import { useDrawerStore } from '../../core/drawer/drawerStore';
 import { useTheme } from '../../core/theme/useTheme';
 import { useLivestockStore } from './store';
+import { useTutorialStore } from '../../core/tutorial/store';
+import { useGamificationStore } from '../gamification/store';
 import {
   EVENT_COLORS,
   GREEN,
@@ -321,6 +323,7 @@ function HealthEventModal({
         event_date: eventDate.trim(),
       });
       onClose();
+      setTimeout(() => useGamificationStore.getState().completeTask('record_health_event'), 400);
     } catch (e: any) {
       setLocalError(e?.message ?? 'Error saving event');
     }
@@ -388,6 +391,8 @@ export function LivestockScreen() {
   const { colors } = useTheme();
   const nav = useNavigation<any>();
   const store = useLivestockStore();
+  const tutorial = useTutorialStore();
+  const showGotIt = tutorial.currentStep?.key === 'view_market_value' && tutorial.isVisible;
 
   const [view, setView]           = useState<'list' | 'detail'>('list');
   const [filter, setFilter]       = useState<'all' | 'active' | 'other'>('all');
@@ -398,6 +403,7 @@ export function LivestockScreen() {
   // Resolve farmId + load animals on mount
   useEffect(() => {
     store.resolveFarmId().then(() => store.fetchAnimals());
+    useGamificationStore.getState().completeTask('check_herd_stats');
   }, []);
 
   // Reload animals when farmId becomes available
@@ -653,6 +659,25 @@ export function LivestockScreen() {
               onPress={() => nav.navigate(Routes.MarketPrices)}>
               <Text style={styles.marketBtnText}>View 12-month forecast →</Text>
             </Pressable>
+            {showGotIt && (
+              <Pressable
+                onPress={() => tutorial.checkAndAdvance('view_market_value')}
+                style={{
+                  marginTop: 12,
+                  backgroundColor: '#2E7D32',
+                  borderRadius: 8,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
+                  ✓ Got it — I can see the market value
+                </Text>
+              </Pressable>
+            )}
           </>
         ) : (
           <Text style={[styles.noMarketText, { color: colors.textSecondary }]}>
@@ -799,8 +824,10 @@ export function LivestockScreen() {
                 : ''}
               {'Feed cost estimate: '}{store.pnl.monthly_bales}{' bales straw/month at '}
               {store.pnl.tbn_price_per_bale?.toFixed(2)}{' TND/bale\n'}
-              {'Market price: '}{store.pnl.market_series}{' · '}
-              {store.pnl.estimated_value != null ? Math.round(store.pnl.estimated_value).toLocaleString('fr-TN') : '—'}{' TND/head'}
+              {store.pnl.slaughter_weight_kg != null
+                ? `Market price: ${store.pnl.price_per_kg?.toFixed(2)} TND/kg × ${store.pnl.slaughter_weight_kg}kg = ${store.pnl.estimated_value != null ? Math.round(store.pnl.estimated_value).toLocaleString('fr-TN') : '—'} TND/head`
+                : `Market price: ${store.pnl.market_series} · ${store.pnl.estimated_value != null ? Math.round(store.pnl.estimated_value).toLocaleString('fr-TN') : '—'} TND/head`
+              }
             </Text>
           </>
         ) : (
