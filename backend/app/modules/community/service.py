@@ -111,7 +111,7 @@ class CommunityService:
             {"content": content, "category": category, "media_url": media_url},
         )
         result = await db.execute(
-            select(User.display_name, User.is_verified_farmer).where(User.id == user_id)
+            select(User.display_name, User.is_verified_farmer, User.avatar_url).where(User.id == user_id)
         )
         user_row = result.one_or_none()
         return {

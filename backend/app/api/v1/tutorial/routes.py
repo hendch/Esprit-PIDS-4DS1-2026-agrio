@@ -20,6 +20,9 @@ STEPS_ORDER = [
     "set_price_alert",
     "generate_forecast",
     "view_recommendation",
+    "view_field",
+    "scan_crop",
+    "check_water",
     "join_community",
 ]
 

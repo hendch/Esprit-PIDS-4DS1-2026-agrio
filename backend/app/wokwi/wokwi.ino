@@ -4,7 +4,7 @@
 
 const char* ssid = "Wokwi-GUEST";
 const char* password = "";
-const char* mqtt_server = "broker.hivemq.com";
+const char* mqtt_server = "test.mosquitto.org";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
