@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import {
+  Image,
   View,
   Text,
   StyleSheet,
@@ -10,19 +11,22 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Routes } from "../../core/navigation/routes";
 import { useDrawerStore } from "../../core/drawer/drawerStore";
 import { useUserStore } from "../../core/userStore/userStore";
 import { useThemeStore } from "../../core/theme/themeStore";
 import { useTheme } from "../../core/theme/useTheme";
 import { useLanguageStore } from "../../core/language/languageStore";
 import { GREEN } from "../../core/theme/themeColors";
-import { Routes } from "../../core/navigation/routes";
+import { useProfileStore } from "../../features/profile/store";
+import { useGamificationStore } from "../../features/gamification/store";
+
 const DRAWER_WIDTH = 280;
 
-const MENU_ITEMS = [
+const MENU_ITEMS: { icon: string; label: string; route?: string }[] = [
   { icon: "💬", label: "Farmer Connect", route: Routes.Messages },
-  { icon: "👤", label: "Profile" },
-  { icon: "⚙️", label: "Settings" },
+  { icon: "👤", label: "Profile", route: Routes.Profile },
+  { icon: "⚙️", label: "Settings", route: Routes.Settings },
   { icon: "🔔", label: "Notifications" },
   { icon: "❓", label: "Help & Support" },
   { icon: "🛡️", label: "Privacy Policy" },
@@ -38,6 +42,13 @@ export function AppDrawer() {
   const closeDrawer = useDrawerStore((s) => s.closeDrawer);
   const displayName = useUserStore((s) => s.displayName);
   const clearUser = useUserStore((s) => s.clearUser);
+  const { profile, fetchProfile } = useProfileStore();
+  const { dashboard, fetchDashboard } = useGamificationStore();
+
+  useEffect(() => {
+    fetchProfile();
+    fetchDashboard();
+  }, []);
   const isDark = useThemeStore((s) => s.isDark);
   const toggleDark = useThemeStore((s) => s.toggleDark);
   const language = useLanguageStore((s) => s.language);
@@ -108,12 +119,21 @@ export function AppDrawer() {
             </TouchableOpacity>
           </View>
           <View style={styles.userRow}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
-            </View>
+            {profile?.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            )}
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{name}</Text>
-              <Text style={styles.userRole}>Farm Manager</Text>
+              <Text style={styles.userName}>{profile?.display_name ?? name}</Text>
+              <Text style={styles.userRole}>
+                {profile?.is_verified_farmer ? "🏅 Verified Farmer" : "Farm Manager"}
+              </Text>
+              <Text style={{ color: 'white', fontSize: 12, opacity: 0.9, marginTop: 2 }}>
+                🪙 {dashboard?.balance ?? 0} coins
+              </Text>
             </View>
           </View>
         </View>

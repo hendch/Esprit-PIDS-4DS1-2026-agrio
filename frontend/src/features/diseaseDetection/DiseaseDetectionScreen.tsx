@@ -17,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { Routes } from "../../core/navigation/routes";
+import { useTutorialStore } from "../../core/tutorial/store";
 import { useDrawerStore } from "../../core/drawer/drawerStore";
 import { useTheme } from "../../core/theme/useTheme";
 import { useLanguage } from "../../core/language/useLanguage";
@@ -104,6 +105,8 @@ export function DiseaseDetectionScreen() {
   const { colors } = useTheme();
   const { language, isRTL, toggleLanguage } = useLanguage();
   const labels = SCREEN_LABELS[language];
+  const tutorial = useTutorialStore();
+  const showCropGotIt = tutorial.currentStep?.key === 'scan_crop' && tutorial.isVisible;
   const [history, setHistory] = useState<DiagnosisEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [modelReady, setModelReady] = useState(false);
@@ -754,6 +757,15 @@ export function DiseaseDetectionScreen() {
 
           </View>
         </View>
+
+        {showCropGotIt && lastResult && (
+          <Pressable
+            onPress={() => tutorial.checkAndAdvance('scan_crop')}
+            style={{ marginHorizontal: 16, marginBottom: 12, backgroundColor: '#2E7D32', borderRadius: 8, paddingVertical: 10, alignItems: 'center' }}
+          >
+            <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>✓ Got it — I've seen the diagnosis</Text>
+          </Pressable>
+        )}
 
         {/* Diagnosis History */}
         {history.length === 0 && (
